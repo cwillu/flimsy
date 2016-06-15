@@ -40,6 +40,8 @@ class Display(object):
     self.render.renderPresent()
 
 if __name__ == "__main__":
+  with open('mmap', 'a'):
+    pass
   d = Display()
   import time
   while True:
