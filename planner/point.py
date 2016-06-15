@@ -21,9 +21,9 @@ def make_mmapped_data(d, type=None, f=None):
 
   mm = mmap.mmap(f.fileno(), 0)
   buffer = ffi.from_buffer(mm)
-  gc.append((f, mm, buffer))
 
   data = ffi.cast('{} *'.format(type), buffer)
+  gc.append((f, mm, buffer, data))
   return data
 
 
@@ -48,26 +48,29 @@ def etc(func):
 
   @method(n_name)
   @functools.wraps(func)
-  def n_func(self, b, c_name=c_name):
+  def n_func(self, b):
     self = self.__class__(self.x, self.y)
-    func = getattr(self, c_name)
+    return func(self, b)
+    # func = getattr(self, c_name)
     # func = type(self).__dict__[c_name].__get__(self, type(self))
     return func(self, b)
 
   @method(r_name)
   @functools.wraps(func)
-  def r_func(self, b, c_name=c_name):
+  def r_func(self, b):
+    return func(b, self)
     func = getattr(self, c_name)
     # func = type(self).__dict__[c_name].__get__(self, type(self))
     return func(b, self)
 
 
-  @method(i_name)
-  @functools.wraps(func)
-  def i_func(self, b, c_name=c_name):
-    func = getattr(self, c_name)
-    # func = type(self).__dict__[c_name].__get__(self, type(self))
-    return func(self, b)
+  method(i_name)(func)
+  # @method(i_name)
+  # @functools.wraps(func)
+  # def i_func(self, b):
+  #   func = getattr(self, c_name)
+  #   # func = type(self).__dict__[c_name].__get__(self, type(self))
+  #   return func(self, b)
 
   return cls[n_name]
 
@@ -81,20 +84,22 @@ class P(object):
     a.y *= -1
 
   @etc
-  def __add__(cls, a, b):
-    if isinstance(b, P):
-      a.x += b.x
-      a.y += b.y
-    elif isinstance(b, tuple):
-      a.x += b[0]
-      a.y += b[1]
-    else:
-      a.x += b
-      a.y += b
+  def __add__(a, b):
+    if b.__class__ != a.__class__:
+    # if not isinstance(b, P):
+      raise Exception(b)
+    a.x += b.x
+    a.y += b.y
+    # elif isinstance(b, tuple):
+    #   a.x += b[0]
+    #   a.y += b[1]
+    # else:
+    #   a.x += b
+    #   a.y += b
     return a
 
   @etc
-  def __sub__(cls, a, b):
+  def __sub__(a, b):
     if isinstance(b, P):
       a.x -= b.x
       a.y -= b.y
@@ -106,7 +111,7 @@ class P(object):
     return a
 
   @etc
-  def __mul__(cls, a, b):
+  def __mul__(a, b):
     if isinstance(b, P):
       a.x *= b.x
       a.y *= b.y
@@ -119,7 +124,7 @@ class P(object):
     return a
 
   @etc
-  def __div__(cls, a, b):
+  def __div__(a, b):
     if isinstance(b, P):
       a.x /= b.x
       a.y /= b.y
@@ -132,7 +137,7 @@ class P(object):
     return a
 
   @etc
-  def __mod__(cls, a, b):
+  def __mod__(a, b):
     if isinstance(b, P):
       a.x %= b.x
       a.y %= b.y
@@ -148,14 +153,14 @@ class P(object):
   #   a.x
 
   @etc
-  def __floordiv__(cls, a, b):
+  def __floordiv__(a, b):
     """ Rounded, not floored """
 
-    if b == 1:
-      a.x = int(a.x)
-      a.y = int(a.y)
-      return a
-    elif isinstance(b, P):
+    # if b == 1:
+    #   a.x = int(a.x+.5)
+    #   a.y = int(a.y+.5)
+    #   return a
+    if isinstance(b, P):
       a.x /= b.x
       a.y /= b.y
     elif isinstance(b, tuple):
@@ -164,8 +169,8 @@ class P(object):
     else:
       a.x /= b
       a.y /= b
-    a.x = int(round(a.x))
-    a.y = int(round(a.y))
+    a.x = int(a.x + 0.5)
+    a.y = int(a.y + 0.5)
     return a
 
   def __or__(a, b):
@@ -182,7 +187,7 @@ class P(object):
   __ior__ = __or__
 
   @etc
-  def __lshift__(cls, a, b):
+  def __lshift__(a, b):
     hypot_sq = a.x**2 + a.y**2
     if isinstance(b, P):
       a.x = a.x * b.x - a.y * b.y
@@ -197,7 +202,7 @@ class P(object):
     return a
 
   @etc
-  def __rshift__(cls, a, b):
+  def __rshift__(a, b):
     hypot_sq = a.x**2 + a.y**2
     if isinstance(b, P):
       a.x = a.x * b.x + a.y * b.y
