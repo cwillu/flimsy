@@ -133,6 +133,8 @@ def path(d, data, runs=10):
 # if __name__ == "__main__":
 
 d = P(1000, 1000)
+with open('mmap', 'a'):
+  pass
 data = point.make_mmapped_data(d, f=open('mmap', 'rb+'))
 runs = int((sys.argv[1:] or ["10"])[0])
 # if point.gc:
