@@ -18,19 +18,19 @@ def path():
 
   def get_point(p):
     p //= 1
-    if p % d != p:
-      raise ValueError("Value out of range: {} {}".format(p, d))
+    # if p % d != p:
+    #   raise ValueError("Value out of range: {} {}".format(p, d))
     return data[p.x + p.y * d.x]
 
   def set_point(p, v):
     p //= 1
-    if p % d != p:
-      raise ValueError("Value out of range: {} {}".format(p, d))
+    # if p % d != p:
+    #   raise ValueError("Value out of range: {} {}".format(p, d))
     if v != 0 or data[p.x + p.y * d.x] != 0x00ccccff:
       data[p.x + p.y * d.x] = v
 
   current = P(500.0, 500.0)
-  radius = 190.0
+  radius = 50.0
   radius_sq = radius ** 2
   max_turn = 1.0/16
 
@@ -56,7 +56,10 @@ def path():
 
   cut_points = list(set(cut_points))
   cut_points.sort()
+  from pprint import pprint
+  pprint(cut_points)
 
+  print len(cut_points)
 
   scan_point = P(0.0,0.0)
   old_current = P(0,0)
@@ -105,13 +108,10 @@ def path():
         working |= old_current
         working += old_direction*r
         set_point(working, 0)
-      working |= current
       for cut_point in cut_points:
         working |= current
         working += cut_point
         set_point(working, 0)
-
-
       for r in range(int(radius-5), int(radius+1)):
         working |= current
         working += direction*r
@@ -126,7 +126,7 @@ def path():
 
 
     # print
-    current = current + direction
+    current += direction
     # current += direction c
     # print '{} {} {:.2f} {} {}'.format(math.hypot(direction.x, direction.y), direction, math.degrees(math.acos(direction.x)), current, current)
     # import time
