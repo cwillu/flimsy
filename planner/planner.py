@@ -17,9 +17,9 @@ def set_point(p, v, mask=0xfff0f0f0):
     raise ValueError("Value out of range: {} {}".format(p, d))
   data[p.x + p.y * d.x] &= ~v & mask
 
-def path(d, data, runs=10):
+def path(d, data, runs=10, cutter_size=20):
   #cutter radius in 1/1000 of an inch
-  radius = 250.0
+  radius = cutter_size
 
   max_turn = 1.0/16
 
