@@ -48,26 +48,30 @@ def etc(func):
 
   @method(n_name)
   @functools.wraps(func)
-  def n_func(self, b):
-    self = attr.assoc(self)
-    func = type(self).__dict__[c_name].__get__(self, type(self))
+  def n_func(self, b, c_name=c_name):
+    self = self.__class__(self.x, self.y)
+    func = getattr(self, c_name)
+    # func = type(self).__dict__[c_name].__get__(self, type(self))
     return func(self, b)
 
   @method(r_name)
   @functools.wraps(func)
-  def r_func(self, b):
-    func = type(self).__dict__[c_name].__get__(self, type(self))
+  def r_func(self, b, c_name=c_name):
+    func = getattr(self, c_name)
+    # func = type(self).__dict__[c_name].__get__(self, type(self))
     return func(b, self)
+
 
   @method(i_name)
   @functools.wraps(func)
-  def i_func(self, b):
-    func = type(self).__dict__[c_name].__get__(self, type(self))
+  def i_func(self, b, c_name=c_name):
+    func = getattr(self, c_name)
+    # func = type(self).__dict__[c_name].__get__(self, type(self))
     return func(self, b)
 
   return cls[n_name]
 
-@attr.s
+@attr.s(slots=True)
 class P(object):
   x = attr.ib()
   y = attr.ib()
@@ -140,19 +144,26 @@ class P(object):
       a.y %= b
     return a
 
+  # def __mod__(a, b):
+  #   a.x
+
   @etc
   def __floordiv__(cls, a, b):
     """ Rounded, not floored """
 
-    if isinstance(b, P):
-      a.x //= b.x
-      a.y //= b.y
+    if b == 1:
+      a.x = int(a.x)
+      a.y = int(a.y)
+      return a
+    elif isinstance(b, P):
+      a.x /= b.x
+      a.y /= b.y
     elif isinstance(b, tuple):
-      a.x //= b[0]
-      a.y //= b[1]
+      a.x /= b[0]
+      a.y /= b[1]
     else:
-      a.x //= b
-      a.y //= b
+      a.x /= b
+      a.y /= b
     a.x = int(round(a.x))
     a.y = int(round(a.y))
     return a

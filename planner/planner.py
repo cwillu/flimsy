@@ -6,10 +6,7 @@ from planner.point import P
 
 
 
-def path():
-  d = P(1000, 1000)
-  data = point.make_mmapped_data(d, f=open('mmap', 'rb+'))
-
+def path(d, data):
   for p in xrange(d.x * d.y):
     data[p] = 0xffffffff
     # if data[p] != 0xffffffff:
@@ -18,16 +15,19 @@ def path():
 
   def get_point(p):
     p //= 1
-    # if p % d != p:
-    #   raise ValueError("Value out of range: {} {}".format(p, d))
+    if p % d != p:
+      return -1
+      raise ValueError("Value out of range: {} {}".format(p, d))
     return data[p.x + p.y * d.x]
 
   def set_point(p, v):
     p //= 1
-    # if p % d != p:
-    #   raise ValueError("Value out of range: {} {}".format(p, d))
+    if p % d != p:
+      return -1
+      raise ValueError("Value out of range: {} {}".format(p, d))
     if v != 0 or data[p.x + p.y * d.x] != 0x00ccccff:
       data[p.x + p.y * d.x] = v
+    return v
 
   current = P(500.0, 500.0)
   radius = 50.0
@@ -56,8 +56,8 @@ def path():
 
   cut_points = list(set(cut_points))
   cut_points.sort()
-  from pprint import pprint
-  pprint(cut_points)
+  # from pprint import pprint
+  # pprint(cut_points)
 
   print len(cut_points)
 
@@ -72,7 +72,9 @@ def path():
     working |= current
     working += scan_point
     material = get_point(working)
-    if material == 0xffffffff:
+    if material < 0:
+      return
+    elif material == 0xffffffff:
       for step in xrange(10):
         direction <<= yaw_step
         scan_point <<= yaw_step
@@ -81,16 +83,21 @@ def path():
         material = get_point(working)
         # print '<',
         # set_point(current + scan_point, 0)
-        if material != 0xffffffff:
+        if material < 0:
+          return
+        elif material != 0xffffffff:
           break
     else:
-      set_point(working, 0x0000ff00)
+      if set_point(working, 0x0000ff00) < 0:
+        return
       scan_point >>= yaw_step
       working |= current
       working += scan_point
       material = get_point(working)
       for step in xrange(10):
-        if material == 0xffffffff:
+        if material < 0:
+          return
+        elif material == 0xffffffff:
           break
         # print '>',
         direction >>= yaw_step
@@ -107,17 +114,21 @@ def path():
       for r in xrange(int(radius-5), int(radius+1)):
         working |= old_current
         working += old_direction*r
-        set_point(working, 0)
+        if set_point(working, 0) < 0:
+          return
       for cut_point in cut_points:
         working |= current
         working += cut_point
-        set_point(working, 0)
+        if set_point(working, 0) < 0:
+          return
       for r in range(int(radius-5), int(radius+1)):
         working |= current
         working += direction*r
-        set_point(working, 0x00ffff00)
+        if set_point(working, 0) < 0:
+          return
       working |= current
-      set_point(working, 0x00ccccff)
+      if set_point(working, 0x00ccccff) < 0:
+        return
 
       old_current |= current
       old_direction |= direction
@@ -132,6 +143,16 @@ def path():
     # import time
     # time.sleep(0.)
 
-if __name__ == "__main__":
-  path(*sys.argv[1:])
+# if __name__ == "__main__":
+
+d = P(1000, 1000)
+data = point.make_mmapped_data(d, f=open('mmap', 'rb+'))
+for x in range(10):
+  print "run {}".format(x)
+
+  try:
+    path(d, data)
+  except Exception as e:
+    import traceback
+    traceback.print_exc(e)
 
