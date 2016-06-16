@@ -17,6 +17,7 @@ class Display(object):
     self.render = self.window.createRenderer(-1, sdl.RENDERER_TARGETTEXTURE | sdl.RENDERER_SOFTWARE)
 
     self.frame_texture = self.render.createTexture(sdl.PIXELFORMAT_ARGB8888, sdl.TEXTUREACCESS_TARGET, d.x, d.y)
+    # self.overlay_texture = self.render.createTexture(sdl.PIXELFORMAT_ARGB8888, sdl.TEXTUREACCESS_TARGET, d.x, d.y)
 
     self.animation_texture = self.render.createTexture(sdl.PIXELFORMAT_RGB888, sdl.TEXTUREACCESS_STATIC, d.x, d.y)
     self.animation_texture.setTextureBlendMode(sdl.BLENDMODE_ADD)
@@ -29,7 +30,12 @@ class Display(object):
     # self.render.renderSetLogicalSize(d.x, d.y)
     self.render.renderClear()
 
-    self.animation_texture.updateTexture(sdl.ffi.NULL, self.data, d.x*4)
+    # self.animation_texture.setTextureBlendMode(sdl.BLENDMODE_ADD)
+    self.animation_texture.updateTexture(sdl.ffi.NULL, self.data[0], d.x*4)
+    self.render.renderCopy(self.animation_texture, None, None)
+
+    # self.animation_texture.setTextureBlendMode(sdl.BLENDMODE_BLEND)
+    self.animation_texture.updateTexture(sdl.ffi.NULL, self.data[1], d.x*4)
     self.render.renderCopy(self.animation_texture, None, None)
 
     self.render.renderPresent()
@@ -40,8 +46,6 @@ class Display(object):
     self.render.renderPresent()
 
 if __name__ == "__main__":
-  with open('mmap', 'a'):
-    pass
   d = Display()
   import time
   while True:
