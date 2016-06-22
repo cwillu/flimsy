@@ -78,6 +78,11 @@ class P(object):
   x = attr.ib()
   y = attr.ib()
 
+  @classmethod
+  def angle(cls, angle, radius=1.0):
+    radians = angle * math.pi*2 / 65520
+    return cls(radius * math.sin(radians), radius * math.cos(radians))
+
   def __neg__(self):
     a.x *= -1
     a.y *= -1
@@ -165,8 +170,8 @@ class P(object):
     else:
       a.x /= b
       a.y /= b
-    a.x = int(a.x + (0.5 if a.x >= 0 else -0.5))
-    a.y = int(a.y + (0.5 if a.y >= 0 else -0.5))
+    a.x = int(a.x)
+    a.y = int(a.y)
     return a
 
   def __or__(a, b):
