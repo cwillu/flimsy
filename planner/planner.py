@@ -5,19 +5,35 @@ import time
 from planner import point
 from planner.point import P
 
+class NothingToDo(Exception):
+  pass
+
+
+POINT_TYPE_MASK = 0xff000000
+POINT_MATERIAL = 0xffffffff
+POINT_NO_GO = 0xdddd8888
+POINT_NO_GO_RADIUS = 0xdd8888ff
+POINT_NO_GO_MASK = 0xdd444499
+POINT_PREVIOUSLY_REMOVED = 0x00aaaaaa
+POINT_REMOVED = 0x00000000
 
 def get_point(p, field=0):
   p //= 1
   if p.x < 0 or p.y < 0 or p.x >= d.x or p.y >= d.y:
-    raise ValueError("Value out of range: {} {}".format(p, d))
+    return 0
+    # raise ValueError("Value out of range: {} {}".format(p, d))
   return data[field][p.x + p.y * d.x]
 
 def set_point(p, v, field=0):
   p //= 1
   if p.x < 0 or p.y < 0 or p.x >= d.x or p.y >= d.y:
-    raise ValueError("Value out of range: {} {}".format(p, d))
+    return 0
+    # raise ValueError("Value out of range: {} {}".format(p, d))
   was = data[field][p.x + p.y * d.x]
   data[field][p.x + p.y * d.x] = v
+  # if was != v:
+  #   time.sleep(0.000001)
+
   return was
 
 def circle_test(d, data, *args):
@@ -115,6 +131,12 @@ def path(d, data, runs=10, cutter_size=20):
 
   # print len(cut_points)
 
+  no_go_trace_points = []
+  for cut_point in cut_points:
+    for offset in [P(0, -1), P(-1, 0), P(0, 0), P(1, 0), P(0, 1)]:
+      no_go_trace_points.append(cut_point + offset)
+  no_go_trace_points = list(set(no_go_trace_points))
+  no_go_trace_points.sort()
 
 
   for run in xrange(1, runs+1):
@@ -123,14 +145,71 @@ def path(d, data, runs=10, cutter_size=20):
     for p in xrange(d.x * d.y):
       data[0][p] = 0xffffffff
       data[1][p] = 0x00000000
-    for r in range(500+radius*2):
-      for offset in range(int(radius*1.5)):
-        set_point(P(r+200, 200+offset), 0x88888888)
-        set_point(P(r+400, 200+offset), 0x88888888)
-        set_point(P(200+offset, r+200), 0x88888888)
-        set_point(P(r+200, 700+offset), 0x88888888)
-        set_point(P(r+400, 700+offset), 0x88888888)
-        set_point(P(900+offset, r+200), 0x88888888)
+
+    offset = P(200, 250)
+    size = (500, 200)
+    tl = P(250, 250)
+    br = P(800, 650)
+
+    print "Rendering path"
+    for y in range(d.y):
+      for x in range(d.x):
+        if y > tl.y and y < br.y:
+          if abs(x-tl.x) < 40 or abs(x-br.x) < 40:
+            set_point(P(x, y), POINT_NO_GO)
+        if x > tl.x and x < br.x:
+          if abs(y-tl.y) < 40 or abs(y-br.y) < 40:
+            set_point(P(x, y), POINT_NO_GO)
+
+        circle_center = math.hypot(800-x, 800-y)
+        if circle_center > 50 and circle_center < 80:
+          set_point(P(x, y), POINT_NO_GO)
+
+
+    print "Filling path cutter radius"
+    for y in range(d.y):
+      for x in range(d.x):
+        p = P(x, y)
+        if get_point(p) != POINT_NO_GO:
+          continue
+
+        for cut_point in no_go_trace_points:
+          no_go_radius = p + cut_point
+          if get_point(no_go_radius) & POINT_TYPE_MASK == POINT_NO_GO & POINT_TYPE_MASK:
+            continue
+          # print '{:08x}'.format(get_point(no_go_radius))
+          set_point(no_go_radius, POINT_NO_GO_RADIUS)
+
+    print "Tracing edge"
+    for y in range(d.y):
+      for x in range(d.x):
+        p = P(x, y)
+        if get_point(p) != POINT_NO_GO:
+          continue
+
+        for cut_point in cut_points:
+          no_go_radius = p + cut_point
+          if get_point(no_go_radius) == POINT_NO_GO:
+            continue
+
+          set_point(no_go_radius, POINT_NO_GO_MASK)
+
+    print "Inverting cutter limit path"
+    for y in range(d.y):
+      for x in range(d.x):
+        p = P(x, y)
+        if get_point(p) != POINT_NO_GO_RADIUS:
+          continue
+
+        set_point(p, POINT_MATERIAL)
+        for cut_point in cut_points:
+          no_go_radius = p + cut_point
+
+          if get_point(no_go_radius) != POINT_NO_GO_MASK:
+            continue
+
+          set_point(no_go_radius, POINT_MATERIAL)
+
 
 
 
@@ -159,15 +238,15 @@ def path(d, data, runs=10, cutter_size=20):
               scan_angle += 1
               material = get_point(current + P.angle(scan_angle, radius+1.4))
 
-              if show_scan and not skip % 2:
-                set_point(current + P.angle(direction, radius/0.5), 0x8844ff44, 1)
+              if show_scan:
+                set_point(current + P.angle(direction, radius), 0x8844ff44, 1)
               if material != 0xffffffff:
                 break
               if show_scan and step > 10:
                 set_point(current + P.angle(direction, radius), 0x880044ff, 1)
           else:
-            if show_scan and not skip % 2:
-              set_point(current + P.angle(direction, radius/0.5), 0x88004444, 1)
+            if show_scan and not skip % 3:
+              set_point(current + P.angle(direction, radius), 0x88004444, 1)
 
             for search_radius in range(1, 2):
               scan_angle = direction
@@ -176,16 +255,11 @@ def path(d, data, runs=10, cutter_size=20):
                 direction -= 1
                 scan_angle -= 1
                 try:
-                  # scan_step = P.angle(scan_angle, radius+1.4 + search_radius)
-                  # if scan_step.x < 1:
-                  #   continue
                   material = get_point(current + P.angle(scan_angle, radius+1 * (search_radius)))
                 except ValueError:
                   continue
 
-                if show_scan and not skip % 2:
-                  set_point(current + P.angle(direction, radius/0.5), 0x880044ff, 1)
-                elif show_scan and search_radius:
+                if show_scan:
                   set_point(current + P.angle(direction, radius + 1*search_radius), 0x880044ff, 1)
                 if material == 0xffffffff:
                   break
@@ -210,7 +284,7 @@ def path(d, data, runs=10, cutter_size=20):
                     closest = point
                     closest_distance = distance
               if closest is None:
-                assert False
+                raise NothingToDo
               jogging_distance = int(closest_distance - radius)
               if jogging_distance <= 0:
                 assert False
@@ -232,7 +306,7 @@ def path(d, data, runs=10, cutter_size=20):
         if show_path:
           set_point(current, 0x8800ffff, 1)
 
-        if show_heading and not skip % 2:
+        if show_heading and not skip % 3 and jogging_distance <= 0:
           for r in range(1, int(radius / 1.5)):
             set_point(current + P.angle(direction -65520/4, r), 0x88888800, 1)
 
@@ -248,7 +322,7 @@ def path(d, data, runs=10, cutter_size=20):
 
         # time.sleep(0.01)
 
-    except ValueError:
+    except (ValueError, NothingToDo):
       continue
 
 # a90 = P(math.cos(math.radians(90)), math.sin(math.radians(90)))
