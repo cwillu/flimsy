@@ -10,7 +10,7 @@ import math
 ffi = cffi.FFI()
 
 gc = []
-def make_mmapped_data(d, type=None, f=None, frames=2):
+def make_mmapped_data(d, type=None, f=None, frames=3):
   if type is None:
     type = "uint32_t"
 

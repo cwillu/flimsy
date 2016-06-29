@@ -89,6 +89,7 @@ def path(d, data, runs=10, cutter_size=20):
     for c in xrange(d.x * d.y):
       data[0][c] = 0xffffffff
       data[1][c] = 0x00000000
+      data[2][c] = 0x00000000
 
     offset = P(200, 250)
     size = (500, 200)
@@ -127,6 +128,7 @@ def path(d, data, runs=10, cutter_size=20):
             continue
           # print '{:08x}'.format(get_point(no_go_radius))
           set_point(no_go_radius, POINT_NO_GO_RADIUS)
+          set_point(no_go_radius, POINT_NO_GO_RADIUS, 2)
 
     print "Tracing edge"
     for y in range(d.y):
