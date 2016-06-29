@@ -151,7 +151,7 @@ def path(d, data, runs=10, cutter_size=20):
 
         for cut_point in cut_points:
           no_go_radius = p + cut_point
-          if get_point(no_go_radius) == POINT_NO_GO:
+          if get_point(no_go_radius) in [POINT_NO_GO, POINT_NO_GO_MASK]:
             continue
 
           set_point(no_go_radius, POINT_NO_GO_MASK)
@@ -192,13 +192,13 @@ def path(d, data, runs=10, cutter_size=20):
         scan_angle += initial_scan_yaw
 
         if jogging_distance <= 0:
-          working |= current + P.angle(scan_angle, radius + 1.4)
+          working |= current + P.angle(scan_angle, radius + 1)
           material = get_point(working)
           if material == 0xffffffff:
             for step in xrange(16380):
               direction += 1
               scan_angle += 1
-              material = get_point(current + P.angle(scan_angle, radius+1.4))
+              material = get_point(current + P.angle(scan_angle, radius+1))
 
               if show_scan:
                 set_point(current + P.angle(direction, radius), 0x8844ff44, 1)
@@ -253,9 +253,6 @@ def path(d, data, runs=10, cutter_size=20):
               direction = int(math.atan2(closest.x, closest.y) * 65520 / (2 * math.pi))
         else:
           jogging_distance -= 1
-        if direction_span != 65520:
-          print
-          print 360*direction_start/65520, 360*direction_span/65520, 360*direction/65520, 360*old_direction/65520
 
         print
         print "loc:", current
