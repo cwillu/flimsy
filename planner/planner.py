@@ -44,6 +44,7 @@ def path(d, data, runs=10, cutter_size=20):
   show_path = 1
   show_heading = 1
   show_scan = 1
+  show_debug = 0
 
   max_turn = 1.0/16
 
@@ -254,16 +255,17 @@ def path(d, data, runs=10, cutter_size=20):
         else:
           jogging_distance -= 1
 
-        print
-        print "loc:", current
-        print "dir", direction*360/65520
-        print "oldv", P.angle(old_direction)*360/65520
-        print "v", P.angle(direction)*360/65520
+        if show_debug:
+          print
+          print "loc:", current
+          print "dir", direction*360/65520
+          print "oldv", P.angle(old_direction)*360/65520
+          print "v", P.angle(direction)*360/65520
         if current // 1 != old_current // 1:
           total_cuts = 0
           for cut_point in cut_points:
             was = set_point(current + cut_point, 0, 0)
-            if was & 0xff000000 == 0xdd000000:
+            if show_debug and was & 0xff000000 == 0xdd000000:
               print
               print current
               print direction
@@ -272,10 +274,10 @@ def path(d, data, runs=10, cutter_size=20):
               assert False, direction*360/65520
             if was != 0:
               total_cuts += 1
-          # if total_cuts <= 0 and jogging <= 0:
-          #   print "current {}, old {}".format(current//1, old_current//1)
-          #   print "total cuts {}, jogging {}".format(total_cuts, jogging)
-          #   return
+          if show_debug and total_cuts <= 0 and jogging <= 0:
+            print "current {}, old {}".format(current//1, old_current//1)
+            print "total cuts {}, jogging {}".format(total_cuts, jogging)
+            return
         if show_path:
           set_point(current, 0x8800ffff, 1)
 
