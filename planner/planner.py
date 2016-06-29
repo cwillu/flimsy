@@ -296,7 +296,7 @@ def path(d, data, runs=10, cutter_size=20):
 
         # time.sleep(0.01)
 
-    except (ValueError, NothingToDo):
+    except NothingToDo:
       continue
 
 # a90 = P(math.cos(math.radians(90)), math.sin(math.radians(90)))
