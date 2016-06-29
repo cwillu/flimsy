@@ -16,6 +16,12 @@ POINT_NO_GO_MASK = 0xdd444499
 POINT_PREVIOUSLY_REMOVED = 0x00aaaaaa
 POINT_REMOVED = 0x00000000
 
+def a(angle):
+  return "{} ({})".format(angle * 360 / 65520, angle)
+
+def m(material):
+  return "{:08x}".format(material)
+
 def get_point(p, field=0):
   p //= 1
   if p.x < 0 or p.y < 0 or p.x >= d.x or p.y >= d.y:
