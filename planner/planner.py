@@ -115,17 +115,24 @@ def path(d, data, runs=10, cutter_size=20):
   # print fomat(initial_scan_yaw)
   # print format(yaw_step)
 
+  offset_points = [P(0, -1), P(-1, 0), P(1, 0), P(0, 1)]
+  offset_points_with_center = [P(0, -1), P(-1, 0), P(1, 0), P(0, 1)]
+
   cut_points = []
   for rise in xrange(0, int(radius-1)):
     bound = int(round(math.sqrt(radius_sq - rise**2)))
     for stroke in [-bound, -bound + 1, bound-1, bound]: #xrange(-bound, bound + 1):
-      cut_points.append(P(rise, stroke))
-      cut_points.append(P(-rise, stroke))
-      cut_points.append(P(stroke, rise))
-      cut_points.append(P(stroke, -rise))
+      p = P(rise, stroke)
+      cut_points.append(p)
+      p = P(-rise, stroke)
+      cut_points.append(p)
+      p = P(stroke, -rise)
+      cut_points.append(p)
+      p = P(stroke, rise)
+      cut_points.append(p)
 
   cut_points = list(set(cut_points))
-  cut_points.sort()
+  cut_points.sort(key=lambda p: (p.y, p.x))
   # from pprint import pprint
   # pprint(cut_points)
 
@@ -133,10 +140,16 @@ def path(d, data, runs=10, cutter_size=20):
 
   no_go_trace_points = []
   for cut_point in cut_points:
-    for offset in [P(0, -1), P(-1, 0), P(0, 0), P(1, 0), P(0, 1)]:
-      no_go_trace_points.append(cut_point + offset)
+    for offset in offset_points:
+      p = cut_point + offset
+      no_go_trace_points.append(p)
   no_go_trace_points = list(set(no_go_trace_points))
-  no_go_trace_points.sort()
+  no_go_trace_points.sort(key=lambda p: (p.y, p.x))
+
+  scanner_points = cut_points + no_go_trace_points
+  scanner_points = list(set(scanner_points))
+  scanner_points.sort(key=lambda p: math.atan2(p.x, p.y))
+
 
 
   for run in xrange(1, runs+1):
@@ -291,12 +304,26 @@ def path(d, data, runs=10, cutter_size=20):
               direction = int(math.atan2(closest.x, closest.y) * 65520 / (2 * math.pi))
         else:
           jogging_distance -= 1
+        if direction_span != 65520:
+          print
+          print 360*direction_start/65520, 360*direction_span/65520, 360*direction/65520, 360*old_direction/65520
 
-
+        print
+        print "loc:", current
+        print "dir", direction*360/65520
+        print "oldv", P.angle(old_direction)*360/65520
+        print "v", P.angle(direction)*360/65520
         if current // 1 != old_current // 1:
           total_cuts = 0
           for cut_point in cut_points:
             was = set_point(current + cut_point, 0, 0)
+            if was & 0xff000000 == 0xdd000000:
+              print
+              print current
+              print direction
+              print P.angle(old_direction)*360/65520
+              print P.angle(direction)*360/65520
+              assert False, direction*360/65520
             if was != 0:
               total_cuts += 1
           # if total_cuts <= 0 and jogging <= 0:
@@ -306,11 +333,12 @@ def path(d, data, runs=10, cutter_size=20):
         if show_path:
           set_point(current, 0x8800ffff, 1)
 
+        direction %= 65520
         if show_heading and not skip % 3 and jogging_distance <= 0:
           for r in range(1, int(radius / 1.5)):
             set_point(current + P.angle(direction -65520/4, r), 0x88888800, 1)
 
-        old_current |= current
+        old_current = current
         old_direction = direction
 
         current += P.angle(direction)
