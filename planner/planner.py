@@ -185,6 +185,11 @@ def path(d, data, runs=10, cutter_size=20):
         p = P(x, y)
         if get_point(p) != POINT_NO_GO:
           continue
+        for offset in offset_points:
+          if get_point(p+offset) != POINT_NO_GO:
+            break
+        else:
+          continue
 
         for cut_point in no_go_trace_points:
           no_go_radius = p + cut_point
@@ -198,6 +203,11 @@ def path(d, data, runs=10, cutter_size=20):
       for x in range(d.x):
         p = P(x, y)
         if get_point(p) != POINT_NO_GO:
+          continue
+        for offset in offset_points:
+          if get_point(p+offset) != POINT_NO_GO:
+            break
+        else:
           continue
 
         for cut_point in cut_points:
