@@ -45,7 +45,7 @@ def path(d, data, runs=10, cutter_size=20):
   radius = cutter_size
 
   show_path = 1
-  show_heading = 1
+  show_heading = 0
   show_scan = 1
   show_debug = 0
 
@@ -175,7 +175,7 @@ def path(d, data, runs=10, cutter_size=20):
     try:
       skip = 0
       direction = 0
-      current = P(350.0, 500.0)
+      current = P(400.0, 500.0)
       last_bound = None
       current_bound = None
 
@@ -227,11 +227,12 @@ def path(d, data, runs=10, cutter_size=20):
               if show_scan and step > 10:
                 set_point(current + P.angle(scan_angle, radius), 0x88ff44ff, 1)
               if material in [0x00000000]:
-                # print "1", m(material)
+                if show_debug:
+                  print "1", m(material)
                 direction = scan_angle
                 break
             else:
-              if show_debug:
+              if show_debug or True:
                 print "Scan fail 1"
           else:
             if show_scan and not skip % 3:
@@ -255,7 +256,7 @@ def path(d, data, runs=10, cutter_size=20):
                   break
 
               else:
-                if show_debug:
+                if show_debug or True:
                   print "Scan fail 2"
                 continue
               # if search_radius > 1:
@@ -263,7 +264,7 @@ def path(d, data, runs=10, cutter_size=20):
               #   print "short jog {} {}".format(jogging_distance, direction)
               break
             else:
-              if show_debug:
+              if show_debug or True:
                 print "Scan fail 3"
               closest_distance = math.hypot(d.x, d.y)
               closest = None
@@ -282,12 +283,13 @@ def path(d, data, runs=10, cutter_size=20):
                     closest_distance = distance
                     destination = P(x, y)
               if closest is None:
+                print "Nothing to do here"
                 raise NothingToDo
               direction = int(math.atan2(closest.x, closest.y) * 65520 / (2 * math.pi))
               jogging_distance = int(closest_distance)
               jogging_destination = destination
               jogging_direction = direction
-              if show_debug:
+              if show_debug or True:
                 print "long jog {} {}".format(jogging_distance, direction)
               if jogging_distance <= 0:
                 assert False
@@ -337,7 +339,9 @@ def path(d, data, runs=10, cutter_size=20):
               last_on_radius = old_current // 1.0
               last_on_direction = direction
               for p in offset_points_with_center:
-                set_point(old_current + p, 0xffffff00, 1)
+                for pp in offset_points_with_center:
+                  set_point(old_current + p, 0xffffff00, 1)
+                  set_point(old_current + p+p+pp, 0xffffff00, 1)
               if show_debug:
                 print "******************** On radius", last_on_radius, m(current_bound), a(last_on_direction)
             else:
@@ -351,7 +355,9 @@ def path(d, data, runs=10, cutter_size=20):
               last_off_radius = next_off_radius
               last_off_direction = next_off_direction
               for p in offset_points_with_center:
-                set_point(last_off_radius + p, 0xffffff00, 1)
+                for pp in offset_points_with_center:
+                  set_point(last_off_radius + p, 0xff0000ff, 1)
+                  set_point(last_off_radius + p+p+pp, 0xff0000ff, 1)
               if show_debug:
                 print "Off radius", last_off_radius, m(current_bound), a(last_off_direction)
               #we've left the building
@@ -367,7 +373,7 @@ def path(d, data, runs=10, cutter_size=20):
             current = jogging_destination
             old_current = current
             total_cuts = 1
-          was_jogging = True
+            was_jogging = 1
 
         if show_debug:
           print
@@ -382,7 +388,17 @@ def path(d, data, runs=10, cutter_size=20):
             was = set_point(old_current + cut_point, 0, 0)
             if was != 0:
               total_cuts += 1
-              was_jogging = False
+              if was_jogging:
+                print "**** done jogging"
+                was_jogging = 0
+          if was_jogging:
+            was_jogging += 1
+            if was_jogging > radius:
+              print "**** timed out jogging" , radius
+              was_jogging = 0
+              last_off_radius = None
+              last_on_radius = None
+              # total_cuts += 1
           if show_debug:
             print total_cuts, last_cuts
 
@@ -411,7 +427,13 @@ def path(d, data, runs=10, cutter_size=20):
             else:
               return
         if show_path:
-          set_point(current, 0x8800ffff, 1)
+          if jogging_distance > 0:
+            for p in offset_points_with_center:
+              set_point(current, 0x8800ff00, 1)
+          elif was_jogging > 0:
+              set_point(current, 0x88ff0000, 1)
+          else:
+            set_point(current, 0x8800ffff, 1)
 
         direction %= 65520
         if show_heading and not skip % 3 and jogging_distance <= 0:
