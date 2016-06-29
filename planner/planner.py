@@ -8,7 +8,6 @@ from planner.point import P
 class NothingToDo(Exception):
   pass
 
-
 POINT_TYPE_MASK = 0xff000000
 POINT_MATERIAL = 0xffffffff
 POINT_NO_GO = 0xdddd8888
@@ -21,14 +20,12 @@ def get_point(p, field=0):
   p //= 1
   if p.x < 0 or p.y < 0 or p.x >= d.x or p.y >= d.y:
     return 0
-    # raise ValueError("Value out of range: {} {}".format(p, d))
   return data[field][p.x + p.y * d.x]
 
 def set_point(p, v, field=0):
   p //= 1
   if p.x < 0 or p.y < 0 or p.x >= d.x or p.y >= d.y:
     return 0
-    # raise ValueError("Value out of range: {} {}".format(p, d))
   was = data[field][p.x + p.y * d.x]
   data[field][p.x + p.y * d.x] = v
   # if was != v:
@@ -46,14 +43,8 @@ def path(d, data, runs=10, cutter_size=20):
   show_scan = 1
   show_debug = 0
 
-  max_turn = 1.0/16
-
   radius_sq = radius ** 2
-  yaw_step = 65520/360 #math.asin(math.radians(1))
   initial_scan_yaw = 1
-  # yaw_step = P(math.cos(yaw_step_angle), math.sin(yaw_step_angle))
-  # print fomat(initial_scan_yaw)
-  # print format(yaw_step)
 
   offset_points = [P(0, -1), P(-1, 0), P(1, 0), P(0, 1)]
   offset_points_with_center = [P(0, -1), P(-1, 0), P(1, 0), P(0, 1)]
@@ -73,10 +64,6 @@ def path(d, data, runs=10, cutter_size=20):
 
   cut_points = list(set(cut_points))
   cut_points.sort(key=lambda p: (p.y, p.x))
-  # from pprint import pprint
-  # pprint(cut_points)
-
-  # print len(cut_points)
 
   no_go_trace_points = []
   for cut_point in cut_points:
@@ -89,8 +76,6 @@ def path(d, data, runs=10, cutter_size=20):
   scanner_points = cut_points + no_go_trace_points
   scanner_points = list(set(scanner_points))
   scanner_points.sort(key=lambda p: math.atan2(p.x, p.y))
-
-
 
   for run in xrange(1, runs+1):
     print "Run {}\r".format(run),
@@ -117,7 +102,6 @@ def path(d, data, runs=10, cutter_size=20):
         circle_center = math.hypot(800-x, 800-y)
         if circle_center > 50 and circle_center < 80:
           set_point(P(x, y), POINT_NO_GO)
-
 
     print "Filling path cutter radius"
     for y in range(d.y):
@@ -173,12 +157,9 @@ def path(d, data, runs=10, cutter_size=20):
 
           set_point(no_go_radius, POINT_MATERIAL)
 
-
-
-
     try:
       skip = 0
-      direction = 0 #P(1.0, 0.0)
+      direction = 0
       current = P(350.0, 500.0)
 
       feed_step = 1
@@ -292,36 +273,11 @@ def path(d, data, runs=10, cutter_size=20):
         current += P.angle(direction)
         if not skip % 10:
           skip = 0
-        # current += direction c
-        # print '{} {} {:.2f} {} {}'.format(math.hypot(direction.x, direction.y), direction, math.degrees(math.acos(direction.x)), current, current)
-        # import time
 
         # time.sleep(0.01)
 
     except NothingToDo:
       continue
-
-# a90 = P(math.cos(math.radians(90)), math.sin(math.radians(90)))
-# aa90 = P(math.cos(math.radians(90)), math.sin(math.radians(90)))
-# print a90
-# print aa90
-# print
-# print
-# print (a90 >> aa90) // 1
-# print (a90 >> aa90>> aa90) // 1
-# print (a90 >> aa90>> aa90>> aa90) // 1
-# print (a90 >> aa90>> aa90>> aa90>> aa90) // 1
-# print a90 >> aa90>> aa90>> aa90>> aa90 == aa90
-# print
-# print
-# print (a90 << aa90) // 1
-# print (a90 << aa90<< aa90) // 1
-# print (a90 << aa90<< aa90<< aa90) // 1
-# print (a90 << aa90<< aa90<< aa90<< aa90) // 1
-# print a90 << aa90<< aa90<< aa90<< aa90 == aa90
-# ex
-
-# if __name__ == "__main__":
 
 d = P(1000, 1000)
 with open('mmap', 'a'):
@@ -329,17 +285,9 @@ with open('mmap', 'a'):
 data = point.make_mmapped_data(d, f=open('mmap', 'rb+'))
 runs = int((sys.argv[1:] or ["10"])[0])
 cutter_size = int((sys.argv[2:] or ["50"])[0])
-# if point.gc:
-#   f, mm, buffer, data = point.gc.pop()
-#   mm.close()
-#   f.close()
-#   print dir(data)
-#   data.close()
-
 
 try:
   path(d, data, runs=runs, cutter_size=cutter_size)
-  # circle_test(d, data, runs, cutter_size)
 except Exception as e:
   import traceback
   traceback.print_exc(e)
