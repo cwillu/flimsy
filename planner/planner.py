@@ -94,9 +94,9 @@ def path(d, data, runs=10, cutter_size=20):
   for run in xrange(1, runs+1):
     print "Run {}\r".format(run),
     sys.stdout.flush()
-    for p in xrange(d.x * d.y):
-      data[0][p] = 0xffffffff
-      data[1][p] = 0x00000000
+    for c in xrange(d.x * d.y):
+      data[0][c] = 0xffffffff
+      data[1][c] = 0x00000000
 
     offset = P(200, 250)
     size = (500, 200)
