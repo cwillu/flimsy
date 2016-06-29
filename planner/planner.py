@@ -36,67 +36,6 @@ def set_point(p, v, field=0):
 
   return was
 
-def circle_test(d, data, *args):
-  # P(1.0, 0.0)
-  # adir= P(0.0, -0.5)
-
-  for p in xrange(d.x * d.y):
-    data[0][p] = 0xffffffff
-    data[1][p] = 0x00000000
-  direction = P(1.0, 0.0)
-  adir = 90.0
-  direction = 0.0
-
-  start_time = time.time()
-  loops = 0
-  periods = []
-
-  while True:
-    current_time = time.time()
-    if current_time - start_time > 1:
-      periods.append(loops)
-      # print loops
-      if len(periods) >= 10:
-        break
-
-
-      loops = 0
-      start_time = current_time
-
-    # direction <<= yaw_step
-    # direction <<= math.radians(1)
-    # direction >>= math.radians(0.1)
-    for x in range(1):
-      adir += 65536/4/9
-    direction += 65536/360/10
-    direction += 65536/360/10
-    origin = P(500.0, 500.0)
-    set_point(origin + P(math.sin(2*math.pi*direction/65536), math.cos(2*math.pi*direction/65536)) * 100, 0)
-    set_point(origin + P(math.sin(2*math.pi*direction/65536), math.cos(2*math.pi*direction/65536)) * 200, 0)
-    # set_point(origin + direction * 200 - (direction>>10.0) * 100, 0)
-    time.sleep(0.001)
-    loops += 1
-
-  periods.sort()
-  half_len = len(periods) / 2 - 1
-
-
-  mean = sum(periods) / float(len(periods))
-
-  median = periods[half_len:-half_len]
-  print median, half_len, len(periods)
-  median = sum(median) / float(len(median))
-
-  median_below_median = periods[:half_len]
-  median_below_median = median_below_median[len(median_below_median)/2-1:-len(median_below_median)/2+1]
-  median_below_median = sum(median_below_median) / float(len(median_below_median))
-
-  median_above_median = periods[-half_len:]
-  median_above_median = median_above_median[len(median_above_median)/2-1:-len(median_above_median)/2+1]
-  median_above_median = sum(median_above_median) / float(len(median_above_median))
-
-  print "{:12s}  {:12.2f}  {:12s}".format('', mean, '')
-  print "{:12.2f}  {:12.2f}  {:12.2f}".format(median-median_below_median, median, median_above_median-median)
 
 def path(d, data, runs=10, cutter_size=20):
   #cutter radius in 1/1000 of an inch
