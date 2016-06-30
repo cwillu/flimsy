@@ -615,8 +615,8 @@ d = P(1000, 1000)
 with open('mmap', 'a'):
   pass
 data = point.make_mmapped_data(d, f=open('mmap', 'rb+'))
-runs = int((sys.argv[1:] or ["10"])[0])
-cutter_size = int((sys.argv[2:] or ["50"])[0])
+runs = int((sys.argv[1:] or ["1"])[0])
+cutter_size = int((sys.argv[2:] or ["12"])[0])
 
 try:
   path(d, data, runs=runs, cutter_size=cutter_size)
