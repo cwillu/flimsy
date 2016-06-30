@@ -231,7 +231,7 @@ def path(d, data, runs=10, cutter_size=20):
       last_ons = set()
 
       tick = 0
-      timer = 0.000
+      timer = 0.0000
       while True:
         if show_debug:
           print
@@ -277,7 +277,7 @@ def path(d, data, runs=10, cutter_size=20):
               scan_angle = direction
               scan_angle -= 65520/16 * 3
               for step in xrange(65520):
-                direction -= 1
+                # TODO most of these loops can be massively improved by seeking the angle by bisection instead of stepping like this
                 scan_angle -= 1
                 try:
                   material = get_point(current + P.angle(scan_angle, radius+1 * (search_radius)))
@@ -285,16 +285,23 @@ def path(d, data, runs=10, cutter_size=20):
                   continue
 
                 if show_scan:
-                  set_point(current + P.angle(direction, radius + 1*search_radius), 0x88444444, 1)
+                  set_point(current + P.angle(scan_angle, radius + 1*search_radius), 0x88444444, 1)
                 if material not in [POINT_REMOVED]:
+                  direction -= 65520/16 * 3
+                  direction -= step
+                  direction %= 65520
                   if show_debug:
                     print t(tick), "scan 2", m(material)
                   break
 
               else:
                 if show_debug or True:
-                  print t(tick), "Scan fail 2"
-                no_cuts_for = radius * 8
+                  print t(tick), "Scan fail 2", total_cuts, was_jogging, last_cuts, no_cuts_for, len(last_ons), len(last_offs)
+                if no_cuts_for > 1:
+                  no_cuts_for = radius * 8
+                  was_jogging = 0
+                  print "No cut fail 2"
+                  # TODO We shouldn't get here nearly as often, we're dropping the last cut at intersections with existing material cuts (not at a bound)
 
         direction %= 65520
 
@@ -550,10 +557,11 @@ def path(d, data, runs=10, cutter_size=20):
               if closest is None:
                 print t(tick), "Nothing to do here"
                 raise NothingToDo
-              direction = int(math.atan2(closest.x, closest.y) * 65520 / (2 * math.pi))
-              jogging_distance = int(closest_distance)
+              direction = int(math.atan2(closest.x, closest.y) * 65520 / (2 * math.pi)) % 65520
+              jogging_distance = int(closest_distance) - radius - 1
               jogging_destination = destination
               jogging_direction = direction
+              print t(tick), m(get_point(jogging_destination)), jogging_destination
               if show_debug or True:
                 print t(tick), "long jog (1) {} {}".format(jogging_distance, a(direction)), len(last_ons), len(last_offs)
               if jogging_distance <= 0:

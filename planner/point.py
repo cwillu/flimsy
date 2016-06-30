@@ -73,6 +73,14 @@ def etc(func):
 
   return cls[n_name]
 
+ANGLE_FACTOR = math.pi * 2 / 65520
+SIN = []
+COS = []
+for angle in range(65520 * 2):
+  radians = angle * ANGLE_FACTOR #* math.pi*2 / 65520
+  SIN.append(math.sin(radians))
+  COS.append(math.cos(radians))
+
 @attr.s(slots=True)
 class P(object):
   x = attr.ib()
@@ -80,8 +88,7 @@ class P(object):
 
   @classmethod
   def angle(cls, angle, radius=1.0):
-    radians = angle * math.pi*2 / 65520
-    return cls(radius * math.sin(radians), radius * math.cos(radians))
+    return cls(radius * SIN[angle], radius * COS[angle])
 
   def __neg__(self):
     a.x *= -1
