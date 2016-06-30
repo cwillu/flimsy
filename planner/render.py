@@ -30,13 +30,18 @@ class Display(object):
     # self.render.renderSetLogicalSize(d.x, d.y)
     self.render.renderClear()
 
-    # self.animation_texture.setTextureBlendMode(sdl.BLENDMODE_ADD)
+    self.animation_texture.setTextureBlendMode(sdl.BLENDMODE_ADD)
     self.animation_texture.updateTexture(sdl.ffi.NULL, self.data[0], d.x*4)
     self.render.renderCopy(self.animation_texture, None, None)
 
-    # self.animation_texture.setTextureBlendMode(sdl.BLENDMODE_BLEND)
+    self.animation_texture.setTextureBlendMode(sdl.BLENDMODE_ADD)
+    self.animation_texture.updateTexture(sdl.ffi.NULL, self.data[2], d.x*4)
+    self.render.renderCopy(self.animation_texture, None, None)
+
+    self.animation_texture.setTextureBlendMode(sdl.BLENDMODE_ADD)
     self.animation_texture.updateTexture(sdl.ffi.NULL, self.data[1], d.x*4)
     self.render.renderCopy(self.animation_texture, None, None)
+
 
     self.render.renderPresent()
 
