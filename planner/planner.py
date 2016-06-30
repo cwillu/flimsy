@@ -17,10 +17,18 @@ POINT_PREVIOUSLY_REMOVED = 0x00aaaaaa
 POINT_REMOVED = 0x00000000
 
 def a(angle):
+  if angle is None:
+    import traceback
+    traceback.print_stack()
+    return "a(NONE)!?"
+
   return "{} ({})".format(angle * 360 / 65520, angle)
 
 def m(material):
   return "{:08x}".format(material)
+
+def t(tick):
+  return "{:8d}".format(tick)
 
 def get_point(p, field=0):
   p //= 1
@@ -53,6 +61,7 @@ def path(d, data, runs=10, cutter_size=20):
   initial_scan_yaw = 1
 
   offset_points = [P(0, -1), P(-1, 0), P(1, 0), P(0, 1)]
+  offset_points_solid = [P(0, -1), P(-1, 0), P(1, 0), P(0, 1), P(-1, -1), P(-1, 1), P(1, -1), P(1, 1)]
   offset_points_with_center = [P(0, -1), P(-1, 0), P(1, 0), P(0, 1)]
 
   cut_points = []
@@ -73,7 +82,7 @@ def path(d, data, runs=10, cutter_size=20):
 
   no_go_trace_points = []
   for cut_point in cut_points:
-    for offset in offset_points:
+    for offset in offset_points_solid:
       p = cut_point + offset
       no_go_trace_points.append(p)
   no_go_trace_points = list(set(no_go_trace_points))
@@ -93,8 +102,15 @@ def path(d, data, runs=10, cutter_size=20):
 
     offset = P(200, 250)
     size = (500, 200)
+
+
     tl = P(250, 250)
     br = P(800, 650)
+
+    lines = [
+      (P(600-radius, 250), P(600, 500)),
+      (P(700-radius, 250), P(700, 500)),
+    ]
 
     print "Rendering path"
     for y in range(d.y):
@@ -109,6 +125,16 @@ def path(d, data, runs=10, cutter_size=20):
         circle_center = math.hypot(800-x, 800-y)
         if circle_center > 50 and circle_center < 80:
           set_point(P(x, y), POINT_NO_GO)
+
+        for p1, p2 in lines:
+          if y >= p1.y and y <= p2.y:
+            if x >= p1.x and x <= p2.x:
+              set_point(P(x, y), POINT_NO_GO)
+
+
+
+
+
 
     print "Filling path cutter radius"
     for y in range(d.y):
@@ -194,13 +220,21 @@ def path(d, data, runs=10, cutter_size=20):
       last_on_direction = None
       last_off_radius = None
       last_off_direction = None
-      last_clamped_angle = None
 
       total_cuts = 0
+      last_offs = []
+      last_ons = []
 
-
+      tick = 0
+      timer = 0.001
       while True:
+        if show_debug:
+          print
+        tick += 1
         skip += 1
+        if tick >= 7325:
+          show_debug = 1
+
         scan_angle = direction
         # scan_angle += initial_scan_yaw
 
@@ -217,26 +251,24 @@ def path(d, data, runs=10, cutter_size=20):
             working = current + P.angle(scan_angle - step, radius + 1)
             material = get_point(working)
 
-          if material in [0xffffffff, POINT_NO_GO_RADIUS, POINT_NO_GO_MASK]:
+          if material not in [0x00000000]:
             for step in xrange(65520):
               scan_angle = direction + step
               material = get_point(current + P.angle(scan_angle, radius+1))
 
               if show_scan:
-                set_point(current + P.angle(scan_angle, radius), 0x8844ff44, 1)
-              if show_scan and step > 10:
-                set_point(current + P.angle(scan_angle, radius), 0x88ff44ff, 1)
+                set_point(current + P.angle(scan_angle, radius), 0x88444444, 1)
               if material in [0x00000000]:
                 if show_debug:
-                  print "1", m(material)
+                  print t(tick), "scan 1", m(material)
                 direction = scan_angle
                 break
             else:
               if show_debug or True:
-                print "Scan fail 1"
+                print t(tick), "Scan fail 1"
           else:
             if show_scan and not skip % 3:
-              set_point(current + P.angle(direction, radius), 0x88004444, 1)
+              set_point(current + P.angle(direction, radius), 0x88444444, 1)
             for search_radius in [1]:
               scan_angle = direction
               scan_angle -= 65520/16 * 3
@@ -249,74 +281,38 @@ def path(d, data, runs=10, cutter_size=20):
                   continue
 
                 if show_scan:
-                  set_point(current + P.angle(direction, radius + 1*search_radius), 0x8800ffff, 1)
+                  set_point(current + P.angle(direction, radius + 1*search_radius), 0x88444444, 1)
                 if material not in [0x00000000]:
                   if show_debug:
-                    print "2", m(material)
+                    print t(tick), "scan 2", m(material)
                   break
 
               else:
                 if show_debug or True:
-                  print "Scan fail 2"
-                continue
-              # if search_radius > 1:
-              #   jogging_distance = search_radius-1
-              #   print "short jog {} {}".format(jogging_distance, direction)
-              break
-            else:
-              if show_debug or True:
-                print "Scan fail 3"
-              closest_distance = math.hypot(d.x, d.y)
-              closest = None
-              destination = None
-              for y in range(d.y):
-                for x in range(d.x):
-                  point = P(x, y)
-                  material = get_point(point)
-                  if material not in [0xffffffff, POINT_NO_GO_RADIUS]:
-                    continue
-
-                  point -= current
-                  distance = math.hypot(point.x, point.y)
-                  if distance <= closest_distance and distance > radius+1:
-                    closest = point
-                    closest_distance = distance
-                    destination = P(x, y)
-              if closest is None:
-                print "Nothing to do here"
-                raise NothingToDo
-              direction = int(math.atan2(closest.x, closest.y) * 65520 / (2 * math.pi))
-              jogging_distance = int(closest_distance)
-              jogging_destination = destination
-              jogging_direction = direction
-              if show_debug or True:
-                print "long jog {} {}".format(jogging_distance, direction)
-              if jogging_distance <= 0:
-                assert False
+                  print t(tick), "Scan fail 2"
 
         direction %= 65520
 
         if jogging_distance <= 0:
-          if current_bound == POINT_NO_GO_MASK:
-            assert False
-          elif current_bound == POINT_NO_GO_RADIUS:
+          if current_bound in [POINT_NO_GO_RADIUS]:
             next_bound = get_point(current + P.angle(direction), 2)
             clamped = False
             if next_bound == POINT_NO_GO_MASK:
               clamped = True
+              print t(tick), "clamping"
 
               # direction -= 65520 / 16
               # direction /= 65520 / 4
               # direction *= 65520 / 4
               # direction += 65520 / 16
-              # print "***on radius, initial direction:", a(direction)
+              # print t(tick), "***on radius, initial direction:", a(direction)
               step = 1000
               trial_direction = direction
               while True:
               # for step in range(0, 65520, 65520/360):
                 trial_direction += step
-                next_bound = get_point(current + P.angle(trial_direction), 2)
-                # print 'trial {:08x}'.format(next_bound), a(step), a(trial_direction)
+                next_bound = get_point((current) + P.angle(trial_direction), 2)
+                # print t(tick), 'trial {:08x}'.format(next_bound), a(step), a(trial_direction)
                 if step > 1 and next_bound == POINT_NO_GO_RADIUS:
                   step /= -3
                 elif step < 0 and next_bound != POINT_NO_GO_RADIUS:
@@ -326,40 +322,80 @@ def path(d, data, runs=10, cutter_size=20):
                   if next_bound == POINT_NO_GO_RADIUS:
                     direction = trial_direction
                     direction %= 65520
-                    # print "***", a(step), "direction is now:", a(direction)
+                    # if show_debug:
+                    print t(tick), "***", a(step), "direction is now:", a(direction)
                     # last_clamped_angle = direction
                     # last_clamped_position = current
                     break
             # if next_bound == current_bound and (current * 2) // 1.0 / 2 == current // 1.0:
+            print t(tick), "post clamping direction", a(direction), "clamped?", clamped, "current bound", m(current_bound)
             if clamped:
-              next_off_radius = current // 1.0
+              next_off_radius = current
               next_off_direction = direction
 
             if clamped and last_bound != POINT_NO_GO_RADIUS:
               last_on_radius = old_current // 1.0
               last_on_direction = direction
-              for p in offset_points_with_center:
-                for pp in offset_points_with_center:
-                  set_point(old_current + p, 0xffffff00, 1)
-                  set_point(old_current + p+p+pp, 0xffffff00, 1)
-              if show_debug:
-                print "******************** On radius", last_on_radius, m(current_bound), a(last_on_direction)
+              if last_offs:
+                last_ons.append((last_on_radius, last_on_direction))
+                for p in offset_points_with_center:
+                  for pp in offset_points_with_center:
+                    set_point(old_current + p, 0xffffff88, 1)
+                    set_point(old_current + p+p+pp, 0xffffff99, 1)
+                if show_debug or True:
+                  print t(tick), "On radius", last_on_radius, m(current_bound), a(last_on_direction)
+
+                ### XXX copied
+                last_offs.sort(key=lambda (p, _): math.hypot(p.x - current.x, p.y - current.y))
+                last_off_radius, last_off_direction = last_offs.pop(0)
+                print t(tick), "to off", last_off_radius, a(last_off_direction)
+
+                # last_offs.extend(last_ons)
+                last_ons = []
+                destination = last_off_radius - current
+                jogging_destination = last_off_radius
+                jogging_direction = last_off_direction
+                closest_distance = math.hypot(destination.x, destination.y)
+                jogging_distance = max(int(closest_distance)-2,1)
+                direction = int(math.atan2(destination.x, destination.y) * 65520 / (2 * math.pi))
+                was_jogging = 0
+                if show_debug:
+                  print t(tick), "jogging from {} to last_off {} dir: {}".format(current, last_off_radius, a(last_off_direction))
+                  print t(tick), "distance", jogging_distance
+
+              else:
+
+                # last_ons.append((last_on_radius, last_on_direction))
+                for p in offset_points_with_center:
+                  for pp in offset_points_with_center:
+                    set_point(old_current + p, 0xffffff00, 1)
+                    set_point(old_current + p+p+pp, 0xffffff00, 1)
+                if show_debug:
+                  print t(tick), "******************** On radius", last_on_radius, m(current_bound), a(last_on_direction)
             else:
               current_bound = last_bound
               #we've entered the building
 
-              # print direction
+              # print t(tick), direction
           else:
-            assert current_bound in [None, 0x00000000], "{:08x}".format(last_bound)
+            if current_bound not in [None, 0x00000000]:
+              print t(tick), current
+              print t(tick), m(current_bound), m(last_bound)
+              assert False
             if last_bound == POINT_NO_GO_RADIUS:
-              last_off_radius = next_off_radius
+              last_off_radius = next_off_radius - P.angle(next_off_direction, 1)
               last_off_direction = next_off_direction
+              bnd = get_point(last_off_radius, 2)
+              print t(tick), "*"*10, m(bnd), m(current_bound), m(next_bound)
+              print t(tick), "last_bound==nogorad", last_off_radius, a(last_off_direction)
+              last_offs.append((last_off_radius, last_off_direction))
               for p in offset_points_with_center:
                 for pp in offset_points_with_center:
                   set_point(last_off_radius + p, 0xff0000ff, 1)
                   set_point(last_off_radius + p+p+pp, 0xff0000ff, 1)
-              if show_debug:
-                print "Off radius", last_off_radius, m(current_bound), a(last_off_direction)
+              if show_debug or True:
+                print t(tick), "Off radius", last_off_radius, m(current_bound), a(next_off_direction), m(last_bound), a(last_off_direction)
+              print t(tick), "???", m(next_bound)
               #we've left the building
               pass
 
@@ -367,7 +403,7 @@ def path(d, data, runs=10, cutter_size=20):
 
         else:
           jogging_distance -= 1
-          if jogging_distance < 3:
+          if jogging_distance < 1:
             jogging_distance = 0
             direction = jogging_direction
             current = jogging_destination
@@ -377,61 +413,111 @@ def path(d, data, runs=10, cutter_size=20):
 
         if show_debug:
           print
-          print "loc:", current
-          print "dir", P.angle(direction), a(direction)
-          print "old:", old_current
-          print "oldv", P.angle(old_direction), a(old_direction)
+          print t(tick), "loc:", current
+          print t(tick), "dir", P.angle(direction), a(direction)
+          print t(tick), "old:", old_current
+          print t(tick), "oldv", P.angle(old_direction), a(old_direction)
+          print t(tick), "mat", m(current_bound)
         if current // 1 != old_current // 1 and not jogging_distance:
           last_cuts = total_cuts
           total_cuts = 0
           for cut_point in cut_points:
             was = set_point(old_current + cut_point, 0, 0)
-            if was != 0:
-              total_cuts += 1
-              if was_jogging:
-                print "**** done jogging"
-                was_jogging = 0
+            if was == 0:
+              continue
+            total_cuts += 1
+
+            if was_jogging:
+              print t(tick), "**** done jogging"
+              was_jogging = 0
+          if total_cuts:
+            no_cuts_for = 0
+          else:
+            no_cuts_for += 1
           if was_jogging:
             was_jogging += 1
-            if was_jogging > radius:
-              print "**** timed out jogging" , radius
+            if was_jogging > radius*8:
+              print t(tick), "**** timed out jogging" , radius
               was_jogging = 0
-              last_off_radius = None
-              last_on_radius = None
               # total_cuts += 1
           if show_debug:
-            print total_cuts, last_cuts
+            print t(tick), "cuts", total_cuts, "previous", last_cuts, "# since cut", no_cuts_for
+            print t(tick), "was jogging", was_jogging
+            print t(tick), "jog distance", jogging_distance
 
-          if not was_jogging and total_cuts <= 0 and last_cuts <= 0 and jogging_distance <= 0 and current_bound == next_bound:
+          if not was_jogging and total_cuts <= 0 and no_cuts_for >= radius*2 and jogging_distance <= 0 and current_bound == next_bound:
             if show_debug:
-              print "current {}, old {}".format(current//1, old_current//1)
-              print "total cuts {}, jogging {}".format(total_cuts, jogging_distance)
-            if current_bound == POINT_NO_GO_RADIUS and last_off_radius != None:
+              print t(tick), "current {}, old {}".format(current//1, old_current//1)
+              print t(tick), "total cuts {}, jogging {}".format(total_cuts, jogging_distance)
+            if current_bound == POINT_NO_GO_RADIUS and last_offs:
+              ### XXX copied
+              print t(tick), "to off"
+              last_offs.extend(last_ons[::-1])
+              last_ons = []
+              last_offs.sort(key=lambda (p, _): math.hypot(p.x - current.x, p.y - current.y))
+              last_off_radius, last_off_direction = last_offs.pop(0)
               if show_debug:
-                print "jogging from {} to last_off {}".format(current, last_off_radius, a(last_off_direction))
+                print t(tick), "jogging from {} to last_off {}".format(current, last_off_radius, a(last_off_direction))
               destination = last_off_radius - current
               jogging_destination = last_off_radius
               jogging_direction = last_off_direction
               closest_distance = math.hypot(destination.x, destination.y)
               jogging_distance = max(int(closest_distance)-2,1)
               direction = int(math.atan2(destination.x, destination.y) * 65520 / (2 * math.pi))
-            elif current_bound != POINT_NO_GO_RADIUS and last_on_radius != None:
+              was_jogging = 0
+            elif current_bound != POINT_NO_GO_RADIUS and last_ons:
+              print t(tick), "to on"
+              last_on_radius, last_on_direction = last_ons.pop()
               if show_debug:
-                print "*********** jogging from {} to last_on {}".format(current, last_on_radius, a(last_on_direction))
+                print t(tick), "*********** jogging from {} to last_on {}".format(current, last_on_radius, a(last_on_direction))
               destination = last_on_radius - current
               jogging_direction = last_on_direction
               jogging_destination = last_on_radius
               closest_distance = math.hypot(destination.x, destination.y)
               jogging_distance = max(int(closest_distance)-2,1)
               direction = int(math.atan2(destination.x, destination.y) * 65520 / (2 * math.pi))
+              was_jogging = 0
             else:
-              return
+              if show_debug or True:
+                print t(tick), "Scan fail 3"
+                print t(tick), current, a(direction)
+                assert False
+                # return
+              #XXX also copied
+              closest_distance = math.hypot(d.x, d.y)
+              closest = None
+              destination = None
+              for y in range(d.y):
+                for x in range(d.x):
+                  point = P(x, y)
+                  material = get_point(point)
+                  if material not in [0xffffffff]:
+                    continue
+
+                  point -= current
+                  distance = math.hypot(point.x, point.y)
+                  if distance <= closest_distance and distance > radius+1:
+                    closest = point
+                    closest_distance = distance
+                    destination = P(x, y)
+              if closest is None:
+                print t(tick), "Nothing to do here"
+                raise NothingToDo
+              direction = int(math.atan2(closest.x, closest.y) * 65520 / (2 * math.pi))
+              jogging_distance = int(closest_distance)
+              jogging_destination = destination
+              jogging_direction = direction
+              if show_debug or True:
+                print t(tick), "long jog (1) {} {}".format(jogging_distance, direction)
+              if jogging_distance <= 0:
+                assert False
+
         if show_path:
           if jogging_distance > 0:
             for p in offset_points_with_center:
-              set_point(current, 0x8800ff00, 1)
+              set_point(current, 0x22ccffcc, 1)
           elif was_jogging > 0:
-              set_point(current, 0x88ff0000, 1)
+              set_point(current, 0x22ff0000, 1)
           else:
             set_point(current, 0x8800ffff, 1)
 
@@ -446,10 +532,19 @@ def path(d, data, runs=10, cutter_size=20):
         current += P.angle(direction)
         current_bound = get_point(current, 2)
 
+        if current_bound in [POINT_NO_GO_MASK]:
+          print t(tick), current
+          print t(tick), "In forbidden area", last_off_radius, m(current_bound), a(next_off_direction), m(last_bound), a(last_off_direction)
+
+          assert False
+
         if not skip % 10:
           skip = 0
 
-        # time.sleep(0.01)
+        if was_jogging:
+          timer = timer
+        if timer:
+          time.sleep(timer)
 
     except NothingToDo:
       continue
