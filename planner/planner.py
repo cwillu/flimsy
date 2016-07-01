@@ -446,7 +446,9 @@ def path(d, data, runs=10, cutter_size=20):
           total_cuts = 0
           for cut_point in cut_points:
             was = set_point(old_current + cut_point, POINT_REMOVED, 0)
-            if was == POINT_REMOVED:
+            if was == POINT_NO_GO:
+              assert False
+            elif was == POINT_REMOVED:
               continue
             total_cuts += 1
 
