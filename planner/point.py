@@ -30,6 +30,16 @@ def make_mmapped_data(d, type=None, f=None, frames=3):
     _frames.append(data[frame_len*i:frame_len*(i+1)])
   return _frames
 
+def iter_row_wise(d):
+  for y in range(d.y):
+    for x in range(d.x):
+      yield P(d.x, d.y)
+
+def iter_col_wise(d):
+  for x in range(d.x):
+    for y in range(d.y):
+      yield P(d.x, d.y)
+
 
 def etc(func):
   """ decorator """

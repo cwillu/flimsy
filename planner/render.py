@@ -19,8 +19,8 @@ class Display(object):
     self.frame_texture = self.render.createTexture(sdl.PIXELFORMAT_ARGB8888, sdl.TEXTUREACCESS_TARGET, d.x, d.y)
     # self.overlay_texture = self.render.createTexture(sdl.PIXELFORMAT_ARGB8888, sdl.TEXTUREACCESS_TARGET, d.x, d.y)
 
-    self.animation_texture = self.render.createTexture(sdl.PIXELFORMAT_RGB888, sdl.TEXTUREACCESS_STATIC, d.x, d.y)
-    self.animation_texture.setTextureBlendMode(sdl.BLENDMODE_ADD)
+    self.animation_texture = self.render.createTexture(sdl.PIXELFORMAT_ARGB8888, sdl.TEXTUREACCESS_STATIC, d.x, d.y)
+    self.animation_texture.setTextureBlendMode(sdl.BLENDMODE_BLEND)
 
     self.render.setRenderTarget(sdl.ffi.NULL)
 
@@ -30,15 +30,15 @@ class Display(object):
     # self.render.renderSetLogicalSize(d.x, d.y)
     self.render.renderClear()
 
-    self.animation_texture.setTextureBlendMode(sdl.BLENDMODE_ADD)
+    self.animation_texture.setTextureBlendMode(sdl.BLENDMODE_NONE)
     self.animation_texture.updateTexture(sdl.ffi.NULL, self.data[0], d.x*4)
     self.render.renderCopy(self.animation_texture, None, None)
 
-    self.animation_texture.setTextureBlendMode(sdl.BLENDMODE_ADD)
+    self.animation_texture.setTextureBlendMode(sdl.BLENDMODE_BLEND)
     self.animation_texture.updateTexture(sdl.ffi.NULL, self.data[2], d.x*4)
     self.render.renderCopy(self.animation_texture, None, None)
 
-    self.animation_texture.setTextureBlendMode(sdl.BLENDMODE_ADD)
+    self.animation_texture.setTextureBlendMode(sdl.BLENDMODE_BLEND)
     self.animation_texture.updateTexture(sdl.ffi.NULL, self.data[1], d.x*4)
     self.render.renderCopy(self.animation_texture, None, None)
 
