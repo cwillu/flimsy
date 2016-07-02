@@ -8,7 +8,7 @@ from planner.point import P
 class NothingToDo(Exception):
   pass
 
-class Point(object):
+class POINT(object):
   MATERIAL = 0xffeeeeee
   NO_GO = 0xdddd8888
   NO_GO_RADIUS = 0x88ffff00
@@ -92,9 +92,9 @@ def path(d, data, runs=10, cutter_diameter=20):
     print "Run {}\r".format(run),
     sys.stdout.flush()
     for c in xrange(d.x * d.y):
-      data[0][c] = POINT_MATERIAL
+      data[0][c] = POINT.MATERIAL
       data[1][c] = 0x00000000
-      data[2][c] = POINT_NO_BOUND
+      data[2][c] = POINT.NO_BOUND
 
     offset = P(200, 250)
     size = (500, 200)
@@ -113,64 +113,64 @@ def path(d, data, runs=10, cutter_diameter=20):
       for x in range(d.x):
         if y > tl.y and y < br.y:
           if abs(x-tl.x) < 40 or abs(x-br.x) < 40:
-            set_point(P(x, y), POINT_NO_GO)
+            set_point(P(x, y), POINT.NO_GO)
         if x > tl.x and x < br.x:
           if abs(y-tl.y) < 40 or abs(y-br.y) < 40:
-            set_point(P(x, y), POINT_NO_GO)
+            set_point(P(x, y), POINT.NO_GO)
 
         circle_center = math.hypot(800-x, 800-y)
         if circle_center > 50 and circle_center < 80:
-          set_point(P(x, y), POINT_NO_GO)
+          set_point(P(x, y), POINT.NO_GO)
 
         for p1, p2 in lines:
           if y >= p1.y and y <= p2.y:
             if x >= p1.x and x <= p2.x:
-              set_point(P(x, y), POINT_NO_GO)
+              set_point(P(x, y), POINT.NO_GO)
 
         if x == 0 or x == d.x - 1 or y == 0 or y == d.y - 1:
-          set_point(P(x, y), POINT_NO_GO)
+          set_point(P(x, y), POINT.NO_GO)
 
 
     c = P(200, 800)
     for r in range(1, 50):
       for offset in offset_points_with_center:
-        set_point(c + P.angle(0, r) + offset, POINT_NO_GO, 0)
-      set_point(c + P.angle(65520/4, r), POINT_NO_GO, 0)
+        set_point(c + P.angle(0, r) + offset, POINT.NO_GO, 0)
+      set_point(c + P.angle(65520/4, r), POINT.NO_GO, 0)
 
     print "Copying part rendering"
     for y in range(d.y):
       for x in range(d.x):
         p = P(x, y)
-        if get_point(p) not in [POINT_NO_GO]:
+        if get_point(p) not in [POINT.NO_GO]:
           continue
 
-        set_point(p, POINT_NO_GO, 2)
+        set_point(p, POINT.NO_GO, 2)
 
     print "Filling cutter radius around parts"
     for y in range(d.y):
       for x in range(d.x):
         p = P(x, y)
-        if get_point(p, 0) != POINT_NO_GO:
+        if get_point(p, 0) != POINT.NO_GO:
           continue
 
         # interior points can be ignored re: radius checks
         for offset in offset_points:
-          if get_point(p+offset, 0) != POINT_NO_GO:
+          if get_point(p+offset, 0) != POINT.NO_GO:
             break
         else:
           continue
 
         for cut_point in cut_points:
           no_go_radius = p + cut_point
-          if get_point(no_go_radius, 2) != POINT_NO_BOUND:
+          if get_point(no_go_radius, 2) != POINT.NO_BOUND:
             continue
-          set_point(no_go_radius, POINT_CANT_REACH, 2)
+          set_point(no_go_radius, POINT.CANT_REACH, 2)
         for bound in offset_points:
           for rad in range(radius-1):
             no_go_radius = p + bound * rad
-            if get_point(no_go_radius, 2) != POINT_NO_BOUND:
+            if get_point(no_go_radius, 2) != POINT.NO_BOUND:
               continue
-            set_point(no_go_radius, POINT_CANT_REACH, 2)
+            set_point(no_go_radius, POINT.CANT_REACH, 2)
 
 
 
@@ -178,31 +178,31 @@ def path(d, data, runs=10, cutter_diameter=20):
     for y in range(d.y):
       for x in range(d.x):
         p = P(x, y)
-        if get_point(p, 2) != POINT_CANT_REACH:
+        if get_point(p, 2) != POINT.CANT_REACH:
           continue
 
         for offset in offset_points_solid:
           edge = p + offset
-          if get_point(edge, 2) != POINT_NO_BOUND:
+          if get_point(edge, 2) != POINT.NO_BOUND:
             continue
-          set_point(edge, POINT_NO_GO_RADIUS, 2)
+          set_point(edge, POINT.NO_GO_RADIUS, 2)
 
     print "Filling cutter radius around limit path"
     for y in range(d.y):
       for x in range(d.x):
         p = P(x, y)
-        if get_point(p, 2) != POINT_NO_GO_RADIUS:
+        if get_point(p, 2) != POINT.NO_GO_RADIUS:
           continue
 
         for cut_point in cut_points:
           no_go_radius = p + cut_point
-          if get_point(no_go_radius, 2) != POINT_CANT_REACH:
+          if get_point(no_go_radius, 2) != POINT.CANT_REACH:
             continue
-          set_point(no_go_radius, POINT_NO_GO_MASK, 2)
+          set_point(no_go_radius, POINT.NO_GO_MASK, 2)
         for bound in offset_points:
           for rad in range(radius-1):
             no_go_radius = p + bound * rad
-            if get_point(no_go_radius, 2) != POINT_CANT_REACH:
+            if get_point(no_go_radius, 2) != POINT.CANT_REACH:
               continue
 
             break
@@ -258,7 +258,7 @@ def path(d, data, runs=10, cutter_diameter=20):
             last_checked = scan_point
             material = get_point(scan_point)
 
-            if material in [POINT_MATERIAL]:
+            if material in [POINT.MATERIAL]:
               direction = scan_angle
               break
           else:
@@ -267,14 +267,14 @@ def path(d, data, runs=10, cutter_diameter=20):
             material = get_point(working)
 
 
-          if material not in [POINT_REMOVED]:
+          if material not in [POINT.REMOVED]:
             for step in xrange(65520):
               scan_angle = direction + step
               material = get_point(current + P.angle(scan_angle, radius+1))
 
               if show_scan:
                 set_point(current + P.angle(scan_angle, radius), 0x88444444, 1)
-              if material in [POINT_REMOVED]:
+              if material in [POINT.REMOVED]:
                 if show_debug:
                   print t(tick), "scan 1", m(material)
                 direction = scan_angle
@@ -297,7 +297,7 @@ def path(d, data, runs=10, cutter_diameter=20):
 
               if show_scan:
                 set_point(current + P.angle(scan_angle, radius), 0x88444444, 1)
-              if material not in [POINT_REMOVED]:
+              if material not in [POINT.REMOVED]:
                 direction -= step
                 direction %= 65520
                 if show_debug:
@@ -307,7 +307,7 @@ def path(d, data, runs=10, cutter_diameter=20):
               material = get_point(current + P.angle(scan_angle, radius+2))
               if show_scan:
                 set_point(current + P.angle(scan_angle, radius), 0x88444444, 1)
-              if material not in [POINT_REMOVED]:
+              if material not in [POINT.REMOVED]:
                 direction -= step
                 direction %= 65520
                 if show_debug:
@@ -337,10 +337,10 @@ def path(d, data, runs=10, cutter_diameter=20):
             current_bound = get_point(current, 2)
 
         if jogging_distance <= 0:
-          if current_bound in [POINT_NO_GO_RADIUS]:
+          if current_bound in [POINT.NO_GO_RADIUS]:
             next_bound = get_point(current + P.angle(direction), 2)
             clamped = False
-            if next_bound != POINT_NO_GO_RADIUS:
+            if next_bound != POINT.NO_GO_RADIUS:
               clamped = True
               if show_debug:
                 print t(tick), "clamping"
@@ -357,17 +357,17 @@ def path(d, data, runs=10, cutter_diameter=20):
                 trial_direction += step
                 bound = get_point((current) + P.angle(trial_direction), 2)
                 # print t(tick), 'trial {:08x}'.format(next_bound), a(step), a(trial_direction)
-                if step > 1 and bound == POINT_NO_GO_RADIUS:
+                if step > 1 and bound == POINT.NO_GO_RADIUS:
                   step /= -3
-                elif step < 0 and bound != POINT_NO_GO_RADIUS:
+                elif step < 0 and bound != POINT.NO_GO_RADIUS:
                   step /= -3
                 elif step == 0 or step == 1:
                   step = 1
-                  if bound == POINT_NO_GO_RADIUS:
+                  if bound == POINT.NO_GO_RADIUS:
                     trial_direction %= 65520
                     next_off_direction = trial_direction
                     next_off_radius = current + P.angle(next_off_direction)
-                    if next_bound in [POINT_NO_GO_MASK, POINT_CANT_REACH]:
+                    if next_bound in [POINT.NO_GO_MASK, POINT.CANT_REACH]:
                       direction = trial_direction
                       next_bound = bound
                     if show_debug:
@@ -381,10 +381,10 @@ def path(d, data, runs=10, cutter_diameter=20):
             if clamped:
               # next_off_radius = current + P.angle(next_off_direction)
               # next_bound = get_point((current) + P.angle(trial_direction), 2)
-              assert next_bound not in [POINT_NO_GO_MASK, POINT_NO_GO, POINT_CANT_REACH], m(next_bound)
+              assert next_bound not in [POINT.NO_GO_MASK, POINT.NO_GO, POINT.CANT_REACH], m(next_bound)
 
 
-            if current_bound == POINT_NO_GO_RADIUS and last_bound != POINT_NO_GO_RADIUS:
+            if current_bound == POINT.NO_GO_RADIUS and last_bound != POINT.NO_GO_RADIUS:
               last_on_radius = current // 1.0
               # last_on_radius = old_current // 1.0
               last_on_direction = direction
@@ -430,12 +430,12 @@ def path(d, data, runs=10, cutter_diameter=20):
 
               # print t(tick), direction
           else:
-            if current_bound not in [None, POINT_NO_BOUND]:
+            if current_bound not in [None, POINT.NO_BOUND]:
               print t(tick), current
               print t(tick), m(current_bound), m(last_bound)
               assert False
 
-            if last_bound == POINT_NO_GO_RADIUS:
+            if last_bound == POINT.NO_GO_RADIUS:
               last_off_radius = next_off_radius - P.angle(next_off_direction, 1)
               last_off_direction = next_off_direction
               bnd = get_point(last_off_radius, 2)
@@ -468,10 +468,10 @@ def path(d, data, runs=10, cutter_diameter=20):
           last_cuts = total_cuts
           total_cuts = 0
           for cut_point in cut_points:
-            was = set_point(old_current + cut_point, POINT_REMOVED, 0)
-            if was == POINT_NO_GO:
+            was = set_point(old_current + cut_point, POINT.REMOVED, 0)
+            if was == POINT.NO_GO:
               assert False
-            elif was == POINT_REMOVED:
+            elif was == POINT.REMOVED:
               continue
             total_cuts += 1
 
@@ -489,7 +489,7 @@ def path(d, data, runs=10, cutter_diameter=20):
               was_jogging = 0
               # total_cuts += 1
 
-            if get_point(current + P.angle(direction), 2) not in [POINT_NO_GO_RADIUS, POINT_NO_BOUND]:
+            if get_point(current + P.angle(direction), 2) not in [POINT.NO_GO_RADIUS, POINT.NO_BOUND]:
               print t(tick), "**** jogging about to crash"
               was_jogging = 0
 
@@ -508,7 +508,7 @@ def path(d, data, runs=10, cutter_diameter=20):
               for last_on in last_ons:
                 if last_on == last_on_radius:
                   continue
-                if current_bound != POINT_NO_GO_RADIUS:
+                if current_bound != POINT.NO_GO_RADIUS:
                   continue
                 if math.hypot(last_on.x - current.x, last_on.y - current.y) < 1.5:
                   was_jogging = 0
@@ -526,7 +526,7 @@ def path(d, data, runs=10, cutter_diameter=20):
             if show_debug:
               print t(tick), "current {}, old {}".format(current//1, old_current//1)
               print t(tick), "total cuts {}, jogging {}".format(total_cuts, jogging_distance)
-            # if current_bound == POINT_NO_GO_RADIUS and last_offs:
+            # if current_bound == POINT.NO_GO_RADIUS and last_offs:
             if last_offs:
               ### XXX copied
               # last_offs.extend(last_ons[::-1])
@@ -542,7 +542,7 @@ def path(d, data, runs=10, cutter_diameter=20):
               jogging_distance = max(int(closest_distance)-2,1)
               direction = int(math.atan2(destination.x, destination.y) * 65520 / (2 * math.pi))
               was_jogging = 0
-            # elif current_bound != POINT_NO_GO_RADIUS and last_ons:
+            # elif current_bound != POINT.NO_GO_RADIUS and last_ons:
             #   last_on_radius, last_on_direction = last_ons.pop()
             #   if show_debug or True:
             #     print t(tick), "*********** jogging from {} to last_on {}".format(current, last_on_radius, a(last_on_direction))
@@ -573,10 +573,10 @@ def path(d, data, runs=10, cutter_diameter=20):
                 for x in range(d.x):
                   point = P(x, y)
                   material = get_point(point)
-                  if material not in [POINT_MATERIAL]:
+                  if material not in [POINT.MATERIAL]:
                     continue
                   bound = get_point(point, 2)
-                  if bound not in [POINT_NO_GO_RADIUS]:
+                  if bound not in [POINT.NO_GO_RADIUS]:
                     continue
                     # TODO this needs to find the closest radius point instead
 
@@ -622,11 +622,11 @@ def path(d, data, runs=10, cutter_diameter=20):
         current += P.angle(direction)
         current_bound = get_point(current, 2)
 
-        # if current_bound in [POINT_NO_GO_RADIUS]:
+        # if current_bound in [POINT.NO_GO_RADIUS]:
         #   last_on_radius = current // 1.0
 
 
-        if jogging_distance <= 0 and current_bound in [POINT_NO_GO_MASK, POINT_CANT_REACH]:
+        if jogging_distance <= 0 and current_bound in [POINT.NO_GO_MASK, POINT.CANT_REACH]:
           print t(tick), current, was_jogging, jogging_distance
           print t(tick), "In forbidden area", last_off_radius, m(current_bound), a(next_off_direction), m(last_bound), a(last_off_direction)
 
@@ -645,9 +645,9 @@ def path(d, data, runs=10, cutter_diameter=20):
       for y in range(d.y):
         for x in range(d.x):
           p = P(x, y)
-          if get_point(p) != POINT_MATERIAL:
+          if get_point(p) != POINT.MATERIAL:
             continue
-          if get_point(p, 2) == POINT_CANT_REACH:
+          if get_point(p, 2) == POINT.CANT_REACH:
             continue
 
           # set_point(p, 0xffff0000)
