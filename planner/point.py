@@ -124,7 +124,7 @@ def etc(func):
   return cls[n_name]
 
 BIN_TO_RADS = math.pi * 2 / 65520
-RADS_TO_BIN = 65520 / (2 * math.pi)
+RADS_TO_BIN = 65520 / math.pi / 2
 SIN = []
 COS = []
 for angle in range(65520 * 2):
@@ -132,7 +132,7 @@ for angle in range(65520 * 2):
   SIN.append(math.sin(radians))
   COS.append(math.cos(radians))
 
-@attr.s(slots=True)
+@attr.s(slots=True, repr=False)
 class P(object):
   x = attr.ib()
   y = attr.ib()
@@ -280,9 +280,16 @@ class P(object):
 
   def __format__(self, spec=''):
     if not spec:
-      spec = '.2f'
+      if not isinstance(self.x, int) and not isinstance(self.y, int):
+        spec = '.2f'
+      else:
+        spec = ' 2d'
     return '{}({}, {})'.format(type(self).__name__, format(self.x, spec), format(self.y, spec))
 
+  def __repr__(self):
+    return self.__format__()
+  def __str__(self):
+    return self.__format__()
   # def __invert__(a):
   #   return a.__class__(a.y, a.x)
 

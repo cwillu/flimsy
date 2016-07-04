@@ -18,6 +18,7 @@ class Display(object):
     self.keys_down = set()
     self.cursor = P(0, 0)
     self.cursor_move = P(0, 0)
+    self.cursor_surface = 2
     self.show_material = True
     self.show_bounds = True
     self.show_paths = True
@@ -78,7 +79,7 @@ class Display(object):
 
     sys.stdout.write('\r')
     sys.stdout.write(terminal.el)
-    sys.stdout.write('{0.x:4}x{0.y:<4} '.format(self.cursor))
+    sys.stdout.write('{0.cursor.x:4}x{0.cursor.y:<4}@{0.cursor_surface}:{1:08x}  '.format(self, self.surface.get_point(self.cursor, self.cursor_surface)))
     sys.stdout.write(" ".join("{0}:{1:1}".format(k.replace('show_', '').replace('_bound', '').replace('_', ''), "*" if v else " ") for k, v in vars(self).items()[::-1] if k.startswith('show_')))
     sys.stdout.flush()
     sys.stdout.write('\r' + terminal.el)
@@ -107,9 +108,9 @@ class Display(object):
       callback()
       if not event.repeat:
         self.keys_down.remove(core)
-    else:
-      if not event.repeat:
-        print repr(keyname), name
+    # else:
+    #   if not event.repeat:
+    #     print repr(keyname), name
 
   def io_keyup(self, event):
     keycode = event.keysym.sym
@@ -168,11 +169,16 @@ class Display(object):
 
   def io_key_space(self):
     print self.cursor,
-    for x in range(4):
+    for x in range(8):
       print '{:08x}'.format(self.surface.get_point(self.cursor, x)),
     print
 
-
+  def io_key_tab(self):
+    self.cursor_surface += 1
+    self.cursor_surface %= 8
+  def io_key_shift_tab(self):
+    self.cursor_surface -= 1
+    self.cursor_surface %= 8
   def io_key_1(self):
     self.show_material ^= True
   def io_key_t(self):
