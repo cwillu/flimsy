@@ -1,3 +1,4 @@
 attrs
 cffi
 pysdl2-cffi
+blessings

@@ -9,8 +9,55 @@ import math
 
 ffi = cffi.FFI()
 
+class POINT(object):
+  MATERIAL = 0xffeeeeee
+  REMOVED = 0x88000000
+  PREVIOUSLY_REMOVED = 0x88aaaaaa
+
+  CANT_REACH = 0xaa888800
+  NO_GO = 0xdddd8888
+  NO_GO_RADIUS = 0x88ffff00
+  NO_GO_MASK = 0x448888ff
+  NO_BOUND = 0x11000000
+
+  LIMIT_PATH_ENTERED = 1 << 0
+  LIMIT_PATH_EXITED = 1 << 1
+
+class Surface(object):
+  def __init__(self):
+    self.d = P(1024, 1024)
+
+    with open('mmap', 'a'):
+      pass
+
+    self.data = make_mmapped_data(self.d, f=open('mmap', 'rb+'), frames=9)
+
+  def __iter__(self):
+    for y in range(self.d.y):
+      for x in range(self.d.x):
+        yield P(x, y)
+
+  def get_point(self, p, field=0):
+    p //= 1
+    if p.x < 0 or p.y < 0 or p.x >= self.d.x or p.y >= self.d.y:
+      return 0
+    return self.data[field][p.x + p.y * self.d.x]
+
+  def set_point(self, p, v, field=0):
+    p //= 1
+    if p.x < 0 or p.y < 0 or p.x >= self.d.x or p.y >= self.d.y:
+      return 0
+    was = self.data[field][p.x + p.y * self.d.x]
+    self.data[field][p.x + p.y * self.d.x] = v
+    # if was != v:
+    #   time.sleep(0.000001)
+
+    return was
+
+
+
 gc = []
-def make_mmapped_data(d, type=None, f=None, frames=3):
+def make_mmapped_data(d, type=None, f=None, frames=7):
   if type is None:
     type = "uint32_t"
 
@@ -30,15 +77,6 @@ def make_mmapped_data(d, type=None, f=None, frames=3):
     _frames.append(data[frame_len*i:frame_len*(i+1)])
   return _frames
 
-def iter_row_wise(d):
-  for y in range(d.y):
-    for x in range(d.x):
-      yield P(d.x, d.y)
-
-def iter_col_wise(d):
-  for x in range(d.x):
-    for y in range(d.y):
-      yield P(d.x, d.y)
 
 
 def etc(func):
