@@ -23,6 +23,8 @@ class POINT(object):
   LIMIT_PATH_ENTERED = 1 << 0
   LIMIT_PATH_EXITED = 1 << 1
 
+
+
 class Surface(object):
   def __init__(self):
     self.d = P(1024, 1024)
@@ -57,7 +59,7 @@ class Surface(object):
 
 
 gc = []
-def make_mmapped_data(d, type=None, f=None, frames=7):
+def make_mmapped_data(d, type=None, f=None, frames=9):
   if type is None:
     type = "uint32_t"
 
@@ -121,11 +123,12 @@ def etc(func):
 
   return cls[n_name]
 
-ANGLE_FACTOR = math.pi * 2 / 65520
+BIN_TO_RADS = math.pi * 2 / 65520
+RADS_TO_BIN = 65520 / (2 * math.pi)
 SIN = []
 COS = []
 for angle in range(65520 * 2):
-  radians = angle * ANGLE_FACTOR #* math.pi*2 / 65520
+  radians = angle * BIN_TO_RADS #* math.pi*2 / 65520
   SIN.append(math.sin(radians))
   COS.append(math.cos(radians))
 
@@ -136,7 +139,7 @@ class P(object):
 
   @classmethod
   def angle(cls, angle, radius=1.0):
-    return cls(radius * SIN[angle], radius * COS[angle])
+    return cls(radius * COS[angle], radius * SIN[angle])
 
   def __neg__(self):
     a.x *= -1
