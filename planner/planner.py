@@ -352,7 +352,9 @@ def path(surface, runs=10, cutter_diameter=20):
 
       cuts = 0
       no_cuts_for = 0
+      total_cuts = 0
       total_cuts_for_path = 0
+      total_distance = 0
 
       recent_off_radius = None
       last_offs = {}
@@ -474,8 +476,8 @@ def path(surface, runs=10, cutter_diameter=20):
             if not last_offs:
               closest = math.hypot(d.x, d.y)
               jogging_target = None
-              for y in range(d.y, step=radius / 2):
-                for x in range(d.x, step=radius / 2):
+              for y in range(0, d.y, radius / 2):
+                for x in range(0, d.x, radius / 2):
                   proposal = P(x, y)
                   if get_point(proposal, 0) != POINT.MATERIAL:
                     continue
@@ -573,7 +575,8 @@ def path(surface, runs=10, cutter_diameter=20):
             elif was == POINT.REMOVED:
               continue
             cuts += 1
-          total_cuts_for_path += 1
+          total_cuts_for_path += cuts
+          total_cuts += cuts
 
           if cuts:
             no_cuts_for = 0
@@ -646,6 +649,7 @@ def path(surface, runs=10, cutter_diameter=20):
             no_cuts_for = 0
             cuts = 0
             total_cuts_for_path = 0
+            total_distance += distance
 
             old_current = None
 
@@ -663,6 +667,7 @@ def path(surface, runs=10, cutter_diameter=20):
           if show_debug:
             print t(tick), current, a(direction)
           current += P.angle(direction)
+          total_distance += 1
           if show_debug:
             print t(tick), current, a(direction)
 
@@ -701,8 +706,13 @@ def path(surface, runs=10, cutter_diameter=20):
           set_point(p, 0x00000000, 2)
           failed_points += 1
 
+      print "    Total cuts: {:>8,.0f}".format(total_cuts)
+      print "Total distance: {:>8,.0f}".format(total_distance)
+      print "    Efficiency: {:>8,.0f}%".format(100*total_cuts / total_distance / (radius * 2))
+
+
       if failed_points:
-        raise Exception("Failed to cut {} reachable points".format(failed_points))
+        print Exception("Failed to cut {} reachable points".format(failed_points))
 
 surface = point.Surface()
 
